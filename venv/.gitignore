@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+build/
+dist/
+*.spec
+*.log
+.vscode/
+pyvenv.cfg
+.DS_Store
+service_account.json

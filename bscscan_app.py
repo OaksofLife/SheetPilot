@@ -13,8 +13,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import threading
 import queue
+import platform
 
-# Set up logging (same as original)
+# Set up logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -26,7 +27,7 @@ formatter = logging.Formatter('%(message)s')
 console.setFormatter(formatter)
 logger.addHandler(console)
 
-# Resource path for finding files when using PyInstaller (same as original)
+# Resource path for finding files when using PyInstaller
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -78,13 +79,24 @@ class BscscanApp:
         self.automation_thread = None
         self.current_row_index = 0
         
-        # Set icon if available
-        try:
-            self.root.iconbitmap(resource_path("icon.ico"))
-        except:
-            pass
+        # Set icon if available - use different approach on macOS
+        self.set_app_icon()
         
         self.create_widgets()
+    
+    def set_app_icon(self):
+        """Set application icon with cross-platform support"""
+        if platform.system() == 'Darwin':  # macOS
+            try:
+                # On macOS, the icon is set in the app bundle
+                pass
+            except:
+                pass
+        else:  # Windows/Linux
+            try:
+                self.root.iconbitmap(resource_path("icon.ico"))
+            except:
+                pass
     
     def create_widgets(self):
         # Main frame
@@ -313,11 +325,21 @@ class BscscanApp:
             url = self.contract_url.get()
             self.update_status(f"Opening browser to {url}")
             
-            # Launch browser
+            # Launch browser with macOS-specific options if needed
             options = uc.ChromeOptions()
             options.add_argument("--disable-notifications")
             options.add_argument("--disable-popup-blocking")
             options.add_argument("--window-size=1920,1080")
+            
+            # Add macOS-specific options
+            if platform.system() == 'Darwin':
+                # Check if running from app bundle and adjust paths accordingly
+                if getattr(sys, 'frozen', False):
+                    # For macOS, we might need to specify the Chrome binary location
+                    # if it's having trouble finding it
+                    chrome_path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+                    if os.path.exists(chrome_path):
+                        options.binary_location = chrome_path
             
             self.driver = uc.Chrome(options=options)
             self.driver.get(url)
@@ -561,6 +583,11 @@ class BscscanApp:
         self.continue_event.set()  # Signal the automation thread to continue
 
 def main():
+    # Configure macOS app name in menu bar (macOS specific)
+    if platform.system() == 'Darwin':
+        # This makes the app name appear in the menu bar
+        os.environ['PYTHONAPPSKEEPPATH'] = '1'
+        
     root = tk.Tk()
     app = BscscanApp(root)
     root.mainloop()
